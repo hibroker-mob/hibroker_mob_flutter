@@ -217,7 +217,7 @@ class _MyWidgetState extends State<CallLogs> {
               Expanded(
                   child: Center(
                 child: LoadingAnimationWidget.fourRotatingDots(
-                    color: const Color(0xff6546D2), size: 47),
+                    color: const Color(0xff6546D2), size: 35),
               ))
             else if (filterCallLogs.isNotEmpty)
               Expanded(

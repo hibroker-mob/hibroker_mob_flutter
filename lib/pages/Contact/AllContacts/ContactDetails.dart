@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hibroker/components/DashboardDrawer.dart';
+import 'package:hibroker/components/Environment/Environment.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class ContactDetails extends StatefulWidget {
   const ContactDetails({super.key});
@@ -32,6 +37,42 @@ class _MyWidgetState extends State<ContactDetails> {
   bool _isExpanded = false;
   bool _isExpandedOtherPersonal = false;
   bool _isExpandedDocument = false;
+  int? USERID;
+  Map<String, dynamic> contact_details = {};
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserId();
+  }
+
+  void fetchUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString('MY_TOKEN');
+    USERID = prefs.getInt("userId");
+    print("USERID ${USERID}");
+    if (USERID != null) {
+      final url =
+          Uri.parse('${Environment.apiUrl}api/get-contact-details-by-id');
+      try {
+        final response = await http.post(url,
+            headers: {
+              "Authorization": "Bearer $token",
+              "Content-Type": "application/json"
+            },
+            body: jsonEncode({"contact_id": USERID}));
+        if (response.statusCode == 201) {
+          final dataResponse = jsonDecode(response.body);
+          setState(() {
+            contact_details = dataResponse["contact"];
+            print("contact_details ${contact_details}");
+          });
+        }
+      } catch (error) {
+        print("Error: $error");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -337,15 +378,15 @@ class _MyWidgetState extends State<ContactDetails> {
                     const SizedBox(
                       height: 15,
                     ),
-                    const Text(
-                      "Arun Kumar Sharma",
+                    Text(
+                      "${contact_details["firstname"] ?? ""}",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 25),
+                      style: const TextStyle(fontSize: 25),
                     ),
-                    const Text(
-                      "91-9831713109",
+                    Text(
+                      "+${contact_details['mobile_prefix'] ?? ''}-${contact_details['mobile'] ?? ''}",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 21),
+                      style: const TextStyle(fontSize: 21),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(70, 10, 70, 0),
@@ -447,15 +488,16 @@ class _MyWidgetState extends State<ContactDetails> {
                           borderRadius: BorderRadius.circular(0),
                           border: Border.all(width: .5, color: Colors.black)),
                       width: double.infinity,
-                      child: const Column(
+                      child: Column(
                         children: [
                           Padding(
-                              padding: EdgeInsets.fromLTRB(20, 20, 10, 10),
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 20, 10, 10),
                               child: Column(
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.local_phone,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -464,8 +506,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                         width: 20,
                                       ),
                                       Text(
-                                        "+91-9831713109",
-                                        style: TextStyle(
+                                        "+${contact_details['mobile_prefix']?? ''}-${contact_details['mobile']?? ''}",
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
                                           color: Color(0xff565871),
@@ -482,7 +524,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.email_sharp,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -491,8 +533,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                         width: 20,
                                       ),
                                       Text(
-                                        "tamal.infosyst@gmail.com",
-                                        style: TextStyle(
+                                        "${contact_details["email"]}",
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w500,
                                           fontSize: 16,
                                           color: Color(0xff565871),
@@ -509,7 +551,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.person,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -523,14 +565,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "ALL EMPLOYEES",
-                                              style: TextStyle(
+                                              "${contact_details["branch"] != null ? contact_details["branch"]["branch_name"] : ""}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Branch)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -550,7 +592,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.person_search,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -564,14 +606,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "Developer",
-                                              style: TextStyle(
+                                              "${contact_details["contact_type"] != null ? contact_details["contact_type"]["contact_type"] : ""}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Assign to)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -591,7 +633,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.calendar_month_sharp,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -605,14 +647,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "02 Sep 2024 08:30 PM",
-                                              style: TextStyle(
+                                              "${contact_details["created_at"]}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Assign date)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -632,7 +674,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.map_outlined,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -646,14 +688,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "residential",
-                                              style: TextStyle(
+                                              "${contact_details["remark"] ?? ""}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Remark)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -673,7 +715,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.format_list_bulleted_outlined,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -687,14 +729,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "",
-                                              style: TextStyle(
+                                              "${contact_details["uin"] ?? ""}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Unique number)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -714,7 +756,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   ),
                                   Row(
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.search,
                                         color: Color(0xff565871),
                                         size: 25,
@@ -728,14 +770,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              "GM E City Town",
-                                              style: TextStyle(
+                                              "${contact_details["keywords"] ?? ""}",
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
                                                 color: Color(0xff565871),
                                               ),
                                             ),
-                                            Text(
+                                            const Text(
                                               "(Keywords)",
                                               textAlign: TextAlign.end,
                                               style: TextStyle(
@@ -776,7 +818,7 @@ class _MyWidgetState extends State<ContactDetails> {
                             );
                           },
                           body: Padding(
-                            padding: EdgeInsets.fromLTRB(10, 0, 10, 10),
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                             child: Container(
                               decoration: BoxDecoration(
                                   color:
@@ -785,7 +827,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                   border: Border.all(
                                       width: .5, color: Colors.black)),
                               width: double.infinity,
-                              child: const Column(
+                              child: Column(
                                 children: [
                                   Padding(
                                       padding:
@@ -794,7 +836,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                         children: [
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.house_outlined,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -809,8 +851,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["company"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -818,7 +860,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Comapany Name)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -839,7 +881,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.factory,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -854,8 +896,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["website"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -863,7 +905,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Business Domain)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -884,7 +926,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.flag,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -899,8 +941,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["business"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -908,7 +950,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Business Type)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -929,7 +971,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.business_center,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -944,8 +986,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["designation"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -953,7 +995,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Designation)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -974,7 +1016,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.public,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -989,8 +1031,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["website"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -998,7 +1040,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Website)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1019,7 +1061,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.fax,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1034,8 +1076,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["fax"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1043,7 +1085,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(FAX)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1064,7 +1106,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.map,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1079,8 +1121,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["bank_address"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1088,7 +1130,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Business Address)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1109,7 +1151,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.location_pin,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1124,8 +1166,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["bank_city"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1133,7 +1175,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(City)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1154,7 +1196,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.near_me_sharp,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1169,8 +1211,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["bank_locality"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1178,7 +1220,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Locality)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1199,8 +1241,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.fiber_pin,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1214,8 +1256,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["pincode"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1223,7 +1265,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Pincode)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1244,8 +1286,9 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons
+                                                    .account_balance_wallet_outlined,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1259,8 +1302,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["ac_no"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1268,7 +1311,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Bank Account Name)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1289,8 +1332,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.account_balance,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1304,8 +1347,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["bank"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1313,7 +1356,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Bank Name)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1334,8 +1377,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.code_off_outlined,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1349,8 +1392,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["ifsc"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1358,7 +1401,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(IFSC)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1405,7 +1448,7 @@ class _MyWidgetState extends State<ContactDetails> {
                             );
                           },
                           body: Padding(
-                            padding: EdgeInsets.fromLTRB(10, 0, 10, 10),
+                            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                             child: Container(
                               decoration: BoxDecoration(
                                   color:
@@ -1414,17 +1457,17 @@ class _MyWidgetState extends State<ContactDetails> {
                                   border: Border.all(
                                       width: .5, color: Colors.black)),
                               width: double.infinity,
-                              child: const Column(
+                              child: Column(
                                 children: [
                                   Padding(
-                                      padding:
-                                          EdgeInsets.fromLTRB(20, 20, 10, 10),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          20, 20, 10, 10),
                                       child: Column(
                                         children: [
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.map,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1438,8 +1481,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Sealdah",
-                                                      style: TextStyle(
+                                                      "${contact_details["address"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1447,7 +1490,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Address)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1468,8 +1511,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.location_pin,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1483,8 +1526,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Kolkata",
-                                                      style: TextStyle(
+                                                      "${contact_details["city"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1492,7 +1535,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(City)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1513,8 +1556,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.near_me_sharp,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1528,8 +1571,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Sonarpur",
-                                                      style: TextStyle(
+                                                      "${contact_details["locality"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1537,7 +1580,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Locality)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1558,8 +1601,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.fiber_pin,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1573,8 +1616,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "743330",
-                                                      style: TextStyle(
+                                                      "${contact_details["pincode"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1582,7 +1625,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Pin)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1603,8 +1646,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.folder_open_sharp,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1618,8 +1661,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "res Tenant Leads",
-                                                      style: TextStyle(
+                                                      "${contact_details["folder"] != null ? contact_details["folder"]["folder_name"] : ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1627,7 +1670,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Folder)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1648,8 +1691,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.cake_outlined,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1663,8 +1706,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["dob"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1672,7 +1715,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Date Of Birth)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1693,8 +1736,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.calendar_month,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1708,8 +1751,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["anniversary"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1717,7 +1760,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Aniversary Date)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1738,7 +1781,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.person,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1753,8 +1796,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "",
-                                                      style: TextStyle(
+                                                      "${contact_details["updated_by"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1762,7 +1805,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Updated By)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1783,8 +1826,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.date_range,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1798,8 +1841,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "04 Sep 2024 11:39 AM",
-                                                      style: TextStyle(
+                                                      "${contact_details["updated_at"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1807,7 +1850,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Updated Date)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1828,8 +1871,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.person,
+                                              const Icon(
+                                                Icons.date_range_outlined,
                                                 color: Color(0xff565871),
                                                 size: 25,
                                               ),
@@ -1843,8 +1886,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "04 Sep 2024 11:39 AM",
-                                                      style: TextStyle(
+                                                      "${contact_details["created_at"] ?? ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1852,7 +1895,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Created Date)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(
@@ -1873,7 +1916,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                           ),
                                           Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.person,
                                                 color: Color(0xff565871),
                                                 size: 25,
@@ -1888,8 +1931,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "Pavitra",
-                                                      style: TextStyle(
+                                                      "${contact_details["user"] != null ? contact_details["user"]["name"] : ""}",
+                                                      style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
                                                         fontSize: 14,
@@ -1897,7 +1940,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                             Color(0xff565871),
                                                       ),
                                                     ),
-                                                    Text(
+                                                    const Text(
                                                       "(Created By)",
                                                       textAlign: TextAlign.end,
                                                       style: TextStyle(

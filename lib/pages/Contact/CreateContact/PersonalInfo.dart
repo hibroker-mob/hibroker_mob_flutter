@@ -613,10 +613,10 @@ class _MyWidgetState extends State<PersonalInfo> {
                 SizedBox(
                   width: 5,
                 ),
-                Text(
-                  "*",
-                  style: TextStyle(color: Colors.red),
-                ),
+                // Text(
+                //   "*",
+                //   style: TextStyle(color: Colors.red),
+                // ),
               ],
             ),
             const SizedBox(
@@ -1005,7 +1005,18 @@ class _MyWidgetState extends State<PersonalInfo> {
             ),
             Container(
               transform: Matrix4.translationValues(0.0, -10.0, 0.0),
-              child: const Text("Email"),
+              child: const Row(
+                children: [
+                  Text("Email"),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Text(
+                    "*",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(
               height: 5,

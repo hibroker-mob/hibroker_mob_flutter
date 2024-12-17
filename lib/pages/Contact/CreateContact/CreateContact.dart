@@ -95,6 +95,22 @@ class _MyWidgetState extends State<CreateContact> {
     _personalLocality = prefs.getString('myLocality');
     _pincode = prefs.getString('myPin');
     _personaladdress = prefs.getString('myAddress');
+    print('Salutation Value: $_salutationValue');
+    print('First Name: $_firstName');
+    print('Last Name: $_lastName');
+    print('Customer Type: $_customerType');
+    print('Contact Type: $_contactType');
+    print('Unique Number: $_uniqueNumber');
+    print('Country Code: $_countryCode');
+    print('Mobile Number: $_mobileNumber');
+    print('Mobile Status: $_mobStatus');
+    print('Verify Email: $_verifyMail');
+    print('Email Status: $_mailStatus');
+    print('Other Number: $_otherNumber');
+    print('City: $_personalCity');
+    print('Locality: $_personalLocality');
+    print('Pincode: $_pincode');
+    print('Address: $_personaladdress');
 
     //////////////////////////////PROFESSIONAL INFO/////////////////////////////////////////////////
     _companyName = prefs.getString('company');
@@ -213,6 +229,72 @@ class _MyWidgetState extends State<CreateContact> {
       );
       return;
     }
+    if (_firstName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your first name")),
+      );
+      return;
+    }
+    if (_customerType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select one customer type")),
+      );
+      return;
+    }
+    if (_uniqueNumber == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your unique number")),
+      );
+      return;
+    }
+    if (_countryCode == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select mobile code")),
+      );
+      return;
+    }
+
+    if (_mobileNumber == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your mobile number")),
+      );
+      return;
+    }
+
+    if (_verifyMail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter your email id")),
+      );
+      return;
+    }
+
+    if (_folder == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select one folder")),
+      );
+      return;
+    }
+
+    if (_source == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select one source")),
+      );
+      return;
+    }
+
+    if (_branch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select one branch")),
+      );
+      return;
+    }
+
+    if (_assignee == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Select one assignee")),
+      );
+      return;
+    }
     setState(() {
       loading = true;
     });
@@ -241,9 +323,9 @@ class _MyWidgetState extends State<CreateContact> {
         "uan": _uniqueNumber ?? "",
         "mob_code": _countryCode ?? "",
         "mobile_no": _mobileNumber ?? "",
-        "mobile_status": (_mobStatus ?? 0).toString(),
+        "mobile_status": (_mobStatus ?? 1).toString(),
         "email": _verifyMail ?? "",
-        "email_status": (_mailStatus ?? 0).toString(),
+        "email_status": (_mailStatus ?? 1).toString(),
         "city": _personalCity ?? "",
         "locality": _personalLocality ?? "",
         "pincode": _pincode ?? "",
@@ -273,7 +355,7 @@ class _MyWidgetState extends State<CreateContact> {
         "source": (_source ?? 0).toString(),
         "branch": (_branch ?? 0).toString(),
         "user": (_assignee ?? 0).toString(),
-        "type_status": (saveType ?? 0).toString(),
+        "type_status": (saveType ?? 1).toString(),
         "subscribe": _subscribe == true ? "1" : "0",
         "is_confidential": _confidential == true ? "1" : "0",
       });
@@ -311,6 +393,9 @@ class _MyWidgetState extends State<CreateContact> {
         );
         Navigator.pushNamed(context, "/allContact");
       } else {
+        final responseBody = await response.stream.bytesToString();
+        final dataResponse = jsonDecode(responseBody);
+        print("dataResponse ${dataResponse}");
         setState(() {
           loading = false;
         });
