@@ -52,6 +52,10 @@ dependencies:
   infinite_scroll_pagination: ^4.1.0
   audioplayers: ^6.1.0
   searchfield: ^1.2.0
+  sim_card_info: ^1.0.2
+  cron: ^0.6.1
+  html_editor_enhanced: ^2.6.0
+  flutter_inappwebview: ^6.1.5
  
 dev_dependencies:
   flutter_test:

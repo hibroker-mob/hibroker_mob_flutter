@@ -3,6 +3,7 @@ import 'package:hibroker/components/Environment/Environment.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:toastification/toastification.dart';
 
 class LoginMail extends StatefulWidget {
@@ -13,7 +14,8 @@ class LoginMail extends StatefulWidget {
 }
 
 class _MyWidgetState extends State<LoginMail> {
-  final TextEditingController _emailController = TextEditingController(text: "care@hibroker.in");
+  final TextEditingController _emailController =
+      TextEditingController(text: "");
   bool loading = false;
 
   void _handleVerifyEmail() async {
@@ -63,6 +65,7 @@ class _MyWidgetState extends State<LoginMail> {
                   fontWeight: FontWeight.w500,
                   fontSize: 13),
             ));
+
         Navigator.pushNamed(context, "/loginMobile",
             arguments: {'db_name': dataResponse["db_name"]});
       } else {

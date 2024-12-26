@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:hibroker/components/Environment/Environment.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -38,6 +40,41 @@ class _MyWidgetState extends State<ProfessionalInfo> {
   String? searchLocalityData = _localityController.text.trim();
   List<dynamic> cities = [];
   List<dynamic> localities = [];
+  bool cityLoading = false;
+  bool localityLoading = false;
+  Timer? _debounce;
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() { 
+      final cityString = _searchController.text.trim();
+
+      if (cityString.length == 0) {
+        cities = [];
+      }
+
+      if (cityString.length >= 3 && cityString.length <= 7) {
+        if (_debounce?.isActive ?? false) _debounce!.cancel();
+        _debounce = Timer(const Duration(seconds: 1), () {
+          fetchCities(cityString);
+        });
+      }
+    });
+    _localityController.addListener(() {
+      final localityString = _localityController.text.trim();
+
+      if (localityString.length == 0) {
+        localities = [];
+      }
+
+      if (localityString.length >= 3 && localityString.length <= 10) {
+        if (_debounce?.isActive ?? false) _debounce!.cancel();
+        _debounce = Timer(const Duration(seconds: 1), () {
+          fetchLocalities(localityString);
+        });
+      }
+    });
+  }
 
   void setCompany(String? company) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -99,6 +136,9 @@ class _MyWidgetState extends State<ProfessionalInfo> {
     final url = Uri.parse(
         '${Environment.apiUrl}api/get-location?input=${search}&type=locality');
     final String? token = prefs.getString('MY_TOKEN');
+    setState(() {
+      cityLoading = true;
+    });
     try {
       final response = await http.get(
         url,
@@ -114,19 +154,31 @@ class _MyWidgetState extends State<ProfessionalInfo> {
           print("Cities ${dataResponse["data"]}");
           showSearchableList();
         });
+      } else {
+        setState(() {
+          cityLoading = false;
+        });
       }
     } catch (error) {
+      setState(() {
+        cityLoading = false;
+      });
       print("Error ${error}");
+    } finally {
+      setState(() {
+        cityLoading = false;
+      });
     }
   }
 
   void fetchLocalities(search) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? _cityName = prefs.getString('profCity');
-    print("_cityName ${_cityName}");
     final url = Uri.parse(
-        '${Environment.apiUrl}api/get-location?input=${search}&type=locality&city=${_cityName}');
+        '${Environment.apiUrl}api/get-location?input=${search}&type=locality&city=${_searchController.text}');
     final String? token = prefs.getString('MY_TOKEN');
+    setState(() {
+      localityLoading = true;
+    });
     try {
       final response = await http.get(
         url,
@@ -142,9 +194,20 @@ class _MyWidgetState extends State<ProfessionalInfo> {
           print("localities ${dataResponse["data"]}");
           showSearchableLocalityList();
         });
+      } else {
+        setState(() {
+          localityLoading = false;
+        });
       }
     } catch (error) {
       print("Error ${error}");
+      setState(() {
+        localityLoading = false;
+      });
+    } finally {
+      setState(() {
+        localityLoading = false;
+      });
     }
   }
 
@@ -163,32 +226,50 @@ class _MyWidgetState extends State<ProfessionalInfo> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 10),
-              ListView.separated(
-                shrinkWrap: true,
-                itemCount: cities.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(
-                      cities[index]["text"],
-                      style: const TextStyle(fontSize: 13),
+              if (cities.length > 0)
+                ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: cities.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(
+                        cities[index]["text"],
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _searchController.text = cities[index]["text"];
+                          setCity(cities[index]["text"]);
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                  separatorBuilder: (context, index) {
+                    return const Divider(
+                      color: Colors.grey,
+                      height: 1,
+                      thickness: 0.5,
+                    );
+                  },
+                )
+              else
+                Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/location.png',
+                      width: double.infinity,
+                      height: 150,
                     ),
-                    onTap: () {
-                      setState(() {
-                        _searchController.text = cities[index]["text"];
-                        setCity(cities[index]["text"]);
-                      });
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-                separatorBuilder: (context, index) {
-                  return const Divider(
-                    color: Colors.grey,
-                    height: 1,
-                    thickness: 0.5,
-                  );
-                },
-              ),
+                    const Text(
+                      "Opps!! No location found",
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.red),
+                    )
+                  ],
+                )
             ],
           ),
         );
@@ -211,32 +292,50 @@ class _MyWidgetState extends State<ProfessionalInfo> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 10),
-              ListView.separated(
-                shrinkWrap: true,
-                itemCount: localities.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(
-                      localities[index]["text"],
-                      style: const TextStyle(fontSize: 13),
+              if (localities.length > 0)
+                ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: localities.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(
+                        localities[index]["text"],
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _localityController.text = localities[index]["text"];
+                          setLocality(localities[index]["text"]);
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                  separatorBuilder: (context, index) {
+                    return const Divider(
+                      color: Colors.grey,
+                      height: 1,
+                      thickness: 0.5,
+                    );
+                  },
+                )
+              else
+                Column(
+                  children: [
+                    Image.asset(
+                      'assets/images/location.png',
+                      width: double.infinity,
+                      height: 150,
                     ),
-                    onTap: () {
-                      setState(() {
-                        _localityController.text = localities[index]["text"];
-                        setLocality(localities[index]["text"]);
-                      });
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-                separatorBuilder: (context, index) {
-                  return const Divider(
-                    color: Colors.grey,
-                    height: 1,
-                    thickness: 0.5,
-                  );
-                },
-              ),
+                    const Text(
+                      "Opps!! No location found",
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.red),
+                    )
+                  ],
+                )
             ],
           ),
         );
@@ -431,7 +530,7 @@ class _MyWidgetState extends State<ProfessionalInfo> {
                   contentPadding:
                       EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 ),
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.number,
                 style: const TextStyle(
                   fontSize: 13,
                 ),
@@ -501,7 +600,7 @@ class _MyWidgetState extends State<ProfessionalInfo> {
                   contentPadding:
                       EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 ),
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.number,
                 style: const TextStyle(
                   fontSize: 13,
                 ),
@@ -558,38 +657,39 @@ class _MyWidgetState extends State<ProfessionalInfo> {
                 style: const TextStyle(fontSize: 14),
                 controller: _searchController,
                 decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: Color(0xff6546d2), width: 1)),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                      borderSide: BorderSide(color: Colors.black, width: .5),
-                    ),
-                    hintText: 'Search...',
-                    hintStyle: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.normal),
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                    suffixIcon: GestureDetector(
-                      onTap: () {
-                        fetchCities(_searchController.text.toLowerCase());
-                      },
-                      child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xff6546d2),
-                            borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomRight: Radius.circular(10)),
-                          ),
-                          child: const Text(
-                            "Search",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          )),
-                    )),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Color(0xff6546d2), width: 1)),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    borderSide: BorderSide(color: Colors.black, width: .5),
+                  ),
+                  hintText: 'Search (Enter at least 3 character)',
+                  hintStyle: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.normal),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                  suffixIcon: cityLoading
+                      ? LoadingAnimationWidget.fourRotatingDots(
+                          color: Colors.grey,
+                          size: 20,
+                        )
+                      : _searchController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  setCity("null");
+                                });
+                              },
+                              icon: const Icon(
+                                Icons.clear,
+                                size: 20,
+                              ),
+                            )
+                          : const SizedBox(),
+                ),
               ),
             ),
             const SizedBox(
@@ -613,30 +713,30 @@ class _MyWidgetState extends State<ProfessionalInfo> {
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                       borderSide: BorderSide(color: Colors.black, width: .5),
                     ),
-                    hintText: 'Search...',
+                    hintText: 'Search (Enter at least 3 character)',
                     hintStyle: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.normal),
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                    suffixIcon: GestureDetector(
-                      onTap: () {
-                        fetchLocalities(_localityController.text.toLowerCase());
-                      },
-                      child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xff6546d2),
-                            borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomRight: Radius.circular(10)),
-                          ),
-                          child: const Text(
-                            "Search",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          )),
-                    )),
+                    suffixIcon: localityLoading == true
+                        ? LoadingAnimationWidget.fourRotatingDots(
+                            color: Colors.grey,
+                            size: 20,
+                          )
+                        : _localityController.text.isNotEmpty
+                            ? IconButton(
+                                onPressed: () {
+                                  _localityController.clear();
+                                  setState(() {
+                                    setLocality("null");
+                                  });
+                                },
+                                icon: const Icon(
+                                  Icons.clear,
+                                  size: 20,
+                                ),
+                              )
+                            : const SizedBox()),
               ),
             ),
             const SizedBox(

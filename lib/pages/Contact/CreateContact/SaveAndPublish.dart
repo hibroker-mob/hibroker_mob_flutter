@@ -102,6 +102,7 @@ class _MyWidgetState extends State<SaveAndPublish> {
   void fetchAllData() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('MY_TOKEN');
+    final String? _dbName = prefs.getString('dbName');
     int? _folder = prefs.getInt('folder');
     int? _source = prefs.getInt('source');
     int? _branch = prefs.getInt('branch');
@@ -142,15 +143,16 @@ class _MyWidgetState extends State<SaveAndPublish> {
       }
     }
     if (token != null) {
-      fetchFolders(token);
-      fetchSources(token);
-      fetchBraches(token);
-      fetchAssignees(token);
+      fetchFolders(token, _dbName);
+      fetchSources(token, _dbName);
+      fetchBraches(token, _dbName);
+      fetchAssignees(token, _dbName);
     }
   }
 
-  void fetchFolders(token) async {
-    final url = Uri.parse('${Environment.apiUrl}api/contact-creation-data');
+  void fetchFolders(token, _dbName) async {
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact-creation-data?db_name=${_dbName}');
 
     try {
       final response = await http.get(url, headers: {
@@ -168,8 +170,9 @@ class _MyWidgetState extends State<SaveAndPublish> {
     }
   }
 
-  void fetchSources(token) async {
-    final url = Uri.parse('${Environment.apiUrl}api/contact-creation-data');
+  void fetchSources(token, _dbName) async {
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact-creation-data?db_name=${_dbName}');
 
     try {
       final response = await http.get(url, headers: {
@@ -187,8 +190,9 @@ class _MyWidgetState extends State<SaveAndPublish> {
     }
   }
 
-  void fetchBraches(token) async {
-    final url = Uri.parse('${Environment.apiUrl}api/contact-creation-data');
+  void fetchBraches(token, _dbName) async {
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact-creation-data?db_name=${_dbName}');
 
     try {
       final response = await http.get(url, headers: {
@@ -206,8 +210,9 @@ class _MyWidgetState extends State<SaveAndPublish> {
     }
   }
 
-  void fetchAssignees(token) async {
-    final url = Uri.parse('${Environment.apiUrl}api/contact-creation-data');
+  void fetchAssignees(token, _dbName) async {
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact-creation-data?db_name=${_dbName}');
 
     try {
       final response = await http.get(url, headers: {

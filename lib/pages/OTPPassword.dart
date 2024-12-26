@@ -16,12 +16,12 @@ class OTPPassword extends StatefulWidget {
 
 class _MyWidgetState extends State<OTPPassword> {
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _otp = TextEditingController(text: "1234");
-  final TextEditingController _password =
-      TextEditingController(text: "babu@hibroker");
+  final TextEditingController _otp = TextEditingController(text: "");
+  final TextEditingController _password = TextEditingController(text: "");
   String? _token;
   bool loading = false;
   bool _obscureText = true;
+  String? db_name;
 
   @override
   void initState() {
@@ -37,6 +37,9 @@ class _MyWidgetState extends State<OTPPassword> {
       if (arguments['token'] != null) {
         _token = arguments['token'];
       }
+      if (arguments['db_name'] != null) {
+        db_name = arguments['db_name'];
+      }
     });
   }
 
@@ -46,10 +49,11 @@ class _MyWidgetState extends State<OTPPassword> {
 
     final int id = dataResponse["user"]["id"];
     final String token = dataResponse["token"];
+    final dbName = dataResponse["db"];
     await prefs.setInt('USERID', id);
     await prefs.setString('MY_TOKEN', token);
-
-    Navigator.pushNamed(
+    prefs.setString('dbName', dbName);
+    await Navigator.pushNamed(
       context,
       "/dashboardHome",
       arguments: {'id': id.toString(), "MY_TOKEN": token},
@@ -78,8 +82,12 @@ class _MyWidgetState extends State<OTPPassword> {
       loading = true;
     });
 
-    final requestBody =
-        jsonEncode({"token": _token, "password": password, "otp": otp});
+    final requestBody = jsonEncode({
+      "token": _token,
+      "password": password,
+      "otp": otp,
+      "db_name": db_name
+    });
     try {
       final response = await http.post(
         url,

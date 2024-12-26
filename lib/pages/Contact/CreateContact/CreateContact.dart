@@ -221,7 +221,9 @@ class _MyWidgetState extends State<CreateContact> {
   void submitContactForm() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('MY_TOKEN');
-    final url = Uri.parse('${Environment.apiUrl}api/contact/creation');
+    final String? _dbName = prefs.getString('dbName');
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact/creation?db_name=${_dbName}');
 
     if (_salutationValue == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -229,7 +231,7 @@ class _MyWidgetState extends State<CreateContact> {
       );
       return;
     }
-    if (_firstName == null) {
+    if (_firstName == null || _firstName == "") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter your first name")),
       );
@@ -241,32 +243,32 @@ class _MyWidgetState extends State<CreateContact> {
       );
       return;
     }
-    if (_uniqueNumber == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter your unique number")),
-      );
-      return;
-    }
-    if (_countryCode == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Select mobile code")),
-      );
-      return;
-    }
+    // if (_uniqueNumber == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Enter your unique number")),
+    //   );
+    //   return;
+    // }
+    // if (_countryCode == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Select mobile code")),
+    //   );
+    //   return;
+    // }
 
-    if (_mobileNumber == null) {
+    if (_mobileNumber == null || _mobileNumber == "null") {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Enter your mobile number")),
       );
       return;
     }
 
-    if (_verifyMail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter your email id")),
-      );
-      return;
-    }
+    // if (_verifyMail == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Enter your email id")),
+    //   );
+    //   return;
+    // }
 
     if (_folder == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -321,7 +323,7 @@ class _MyWidgetState extends State<CreateContact> {
         "cus_type": (_customerType ?? 0).toString(),
         "cont_type": (_contactType ?? 0).toString(),
         "uan": _uniqueNumber ?? "",
-        "mob_code": _countryCode ?? "",
+        "mob_code": _countryCode ?? "91",
         "mobile_no": _mobileNumber ?? "",
         "mobile_status": (_mobStatus ?? 1).toString(),
         "email": _verifyMail ?? "",
@@ -926,6 +928,7 @@ class _MyWidgetState extends State<CreateContact> {
                               ),
                               onPressed: () {
                                 setState(() {
+                                  fetchAllData();
                                   submitContactForm();
                                 });
                               },

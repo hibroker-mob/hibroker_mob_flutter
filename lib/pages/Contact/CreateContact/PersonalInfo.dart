@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:country_picker/country_picker.dart';
@@ -16,7 +17,8 @@ class PersonalInfo extends StatefulWidget {
   State<PersonalInfo> createState() => _MyWidgetState();
 }
 
-final TextEditingController _controller = TextEditingController();
+final TextEditingController _controller =
+    TextEditingController(text: "India (IN) [+91]");
 final TextEditingController _firstNamecontroller = TextEditingController();
 final TextEditingController _lastNamecontroller = TextEditingController();
 final TextEditingController _uniqueController = TextEditingController();
@@ -64,11 +66,83 @@ class _MyWidgetState extends State<PersonalInfo> {
   String? searchLocalityData = _localityController.text.trim();
   List<String> filteredData = [];
   bool loading = false;
+  bool isMobVerify = false;
+  bool mobLoading = false;
+  Timer? _debounce;
+  bool cityLoading = false;
+  bool localityLoading = false;
 
   @override
   void initState() {
     super.initState();
     fetchPersonalInfoData();
+    _searchController.addListener(() {
+      final cityString = _searchController.text.trim();
+
+      if (cityString.length == 0) {
+        cities = [];
+      }
+
+      if (cityString.length >= 3 && cityString.length <= 7) {
+        if (_debounce?.isActive ?? false) _debounce!.cancel();
+        _debounce = Timer(const Duration(seconds: 1), () {
+          fetchCities(cityString);
+        });
+      }
+    });
+    _localityController.addListener(() {
+      final localityString = _localityController.text.trim();
+
+      if (localityString.length == 0) {
+        localities = [];
+      }
+
+      if (localityString.length >= 3 && localityString.length <= 10) {
+        if (_debounce?.isActive ?? false) _debounce!.cancel();
+        _debounce = Timer(const Duration(seconds: 1), () {
+          fetchLocalities(localityString);
+        });
+      }
+    });
+    _mobileController.addListener(() {
+      final text = _mobileController.text;
+
+      if (text.length == 10 && !mobLoading) {
+        verifyMobile();
+      }
+      if (text.length == 0) {
+        setState(() {
+          isMobVerify = false;
+        });
+      }
+      if (text.length > 10) {
+        toastification.show(
+          context: context,
+          type: ToastificationType.warning,
+          style: ToastificationStyle.minimal,
+          title: const Text(
+            'Invalid Input',
+            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.orange),
+          ),
+          autoCloseDuration: const Duration(seconds: 3),
+          primaryColor: Colors.orange,
+          backgroundColor: Colors.white,
+          description: const Text(
+            "Mobile number cannot exceed 10 digits.",
+            style: TextStyle(
+                color: Colors.black, fontWeight: FontWeight.w500, fontSize: 13),
+          ),
+        );
+
+        _mobileController.text = text.substring(0, 10);
+        _mobileController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _mobileController.text.length),
+        );
+      }
+    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   fetchUserDetails();
+    // });
   }
 
   void setSaluationValue(int? salutaionValue) async {
@@ -154,12 +228,15 @@ class _MyWidgetState extends State<PersonalInfo> {
 
   void fetchPersonalInfoData() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? _dbName = prefs.getString('dbName');
 
     int? _salutationValue = prefs.getInt('salutaionValue');
     int? _customerType = prefs.getInt('customerType');
     int? _contactType = prefs.getInt('contactType');
     String? _countryCode = prefs.getString('countyCode');
     String? _countryName = prefs.getString('countryName');
+    int? _emailStatus = prefs.getInt("emailStatus");
+    int? _mobStatus = prefs.getInt("mobStatus");
 
     final String? token = prefs.getString('MY_TOKEN');
     setState(() {
@@ -169,21 +246,26 @@ class _MyWidgetState extends State<PersonalInfo> {
       contactType = _contactType;
       countryCode = _countryCode;
       selectedItem = _countryName;
+      _EmailStatus = _emailStatus ?? 1;
+      _mobileStatus = _mobStatus ?? 1;
     });
 
     if (token != null) {
       fetchCustomerTypes();
     }
     if (_customerType != null) {
-      fetchContactTypes(_customerType);
+      fetchContactTypes(_customerType, _dbName);
     }
   }
 
-  void fetchCities(search) async {
+  Future<void> fetchCities(search) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final url = Uri.parse(
         '${Environment.apiUrl}api/get-location?input=${search}&type=locality');
     final String? token = prefs.getString('MY_TOKEN');
+    setState(() {
+      cityLoading = true;
+    });
     try {
       final response = await http.get(
         url,
@@ -199,19 +281,31 @@ class _MyWidgetState extends State<PersonalInfo> {
           print("Cities ${dataResponse["data"]}");
           showSearchableList();
         });
+      } else {
+        setState(() {
+          cityLoading = false;
+        });
       }
     } catch (error) {
       print("Error ${error}");
+      setState(() {
+        cityLoading = false;
+      });
+    } finally {
+      setState(() {
+        cityLoading = false;
+      });
     }
   }
 
   void fetchLocalities(search) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? _cityName = prefs.getString('myCity');
-    print("_cityName ${_cityName}");
     final url = Uri.parse(
-        '${Environment.apiUrl}api/get-location?input=${search}&type=locality&city=${_cityName}');
+        '${Environment.apiUrl}api/get-location?input=${search}&type=locality&city=${_searchController.text}');
     final String? token = prefs.getString('MY_TOKEN');
+    setState(() {
+      localityLoading = true;
+    });
     try {
       final response = await http.get(
         url,
@@ -227,9 +321,20 @@ class _MyWidgetState extends State<PersonalInfo> {
           print("localities ${dataResponse["data"]}");
           showSearchableLocalityList();
         });
+      } else {
+        setState(() {
+          localityLoading = false;
+        });
       }
     } catch (error) {
       print("Error ${error}");
+      setState(() {
+        localityLoading = false;
+      });
+    } finally {
+      setState(() {
+        localityLoading = false;
+      });
     }
   }
 
@@ -366,7 +471,10 @@ class _MyWidgetState extends State<PersonalInfo> {
   }
 
   void fetchCustomerTypes() async {
-    final url = Uri.parse('${Environment.apiUrl}api/contact-creation-data');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? _dbName = prefs.getString('dbName');
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contact-creation-data?db_name=${_dbName}');
     try {
       final response = await http.get(url, headers: {
         "Authorization": "Bearer $_token",
@@ -384,8 +492,9 @@ class _MyWidgetState extends State<PersonalInfo> {
     }
   }
 
-  void fetchContactTypes(id) async {
-    final url = Uri.parse('${Environment.apiUrl}api/contacttype/$id');
+  void fetchContactTypes(id, _dbName) async {
+    final url = Uri.parse(
+        '${Environment.apiUrl}api/contacttype/$id?db_name=${_dbName}');
     print("url ${url}");
     try {
       final response = await http.get(url, headers: {
@@ -406,8 +515,11 @@ class _MyWidgetState extends State<PersonalInfo> {
   }
 
   void verifyEmail() async {
-    final url = Uri.parse("${Environment.apiUrl}api/verify-email");
-    final requestBody = jsonEncode({"email": email});
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? _dbName = prefs.getString('dbName');
+    final url =
+        Uri.parse("${Environment.apiUrl}api/verify-email?db_name=${_dbName}");
+    final requestBody = jsonEncode({"email": _emailController.text});
     setState(() {
       loading = true;
     });
@@ -420,31 +532,66 @@ class _MyWidgetState extends State<PersonalInfo> {
           body: requestBody);
 
       if (response.statusCode == 200) {
-        setState(() {
-          isVerified = true;
-        });
-        toastification.show(
-            context: context,
-            type: ToastificationType.success,
-            style: ToastificationStyle.minimal,
-            title: const Text(
-              'Verification Successfull',
-              style:
-                  TextStyle(fontWeight: FontWeight.w700, color: Colors.green),
-            ),
-            autoCloseDuration: const Duration(seconds: 4),
-            primaryColor: Colors.green,
-            backgroundColor: Colors.white,
-            description: const Text(
-              "Email Id has been verified.",
-              style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13),
-            ));
+        final dataResponse = jsonDecode(response.body);
+        print("dataResponse2 ${dataResponse}");
+        if (dataResponse["result"] == "valid") {
+          setState(() {
+            isVerified = true;
+            _EmailStatus = 2;
+            setEmailStatus(2);
+          });
+          toastification.show(
+              context: context,
+              type: ToastificationType.success,
+              style: ToastificationStyle.minimal,
+              title: const Text(
+                'Verification Successfull',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, color: Colors.green),
+              ),
+              autoCloseDuration: const Duration(seconds: 4),
+              primaryColor: Colors.green,
+              backgroundColor: Colors.white,
+              description: const Text(
+                "Email Id has been verified.",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13),
+              ));
+        } else {
+          setState(() {
+            isVerified = false;
+            _EmailStatus = 1;
+            setEmailStatus(1);
+            loading = false;
+          });
+          toastification.show(
+              context: context,
+              type: ToastificationType.error,
+              style: ToastificationStyle.minimal,
+              title: const Text(
+                'Verification Failed',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, color: Colors.red),
+              ),
+              autoCloseDuration: const Duration(seconds: 4),
+              primaryColor: Colors.red,
+              backgroundColor: Colors.white,
+              description: const Text(
+                "Invalid email address. Please try again",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13),
+              ));
+        }
       } else {
         setState(() {
+          isVerified = false;
           loading = false;
+          _EmailStatus = 1;
+          setEmailStatus(1);
         });
         toastification.show(
             context: context,
@@ -458,7 +605,7 @@ class _MyWidgetState extends State<PersonalInfo> {
             primaryColor: Colors.red,
             backgroundColor: Colors.white,
             description: const Text(
-              "Email Id not found. Please try again",
+              "Invalid email address. Please try again",
               style: TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.w500,
@@ -477,8 +624,191 @@ class _MyWidgetState extends State<PersonalInfo> {
     }
   }
 
+  void verifyMobile() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? _dbName = prefs.getString('dbName');
+    final url = Uri.parse(
+        "${Environment.apiUrl}api/contact-check-mobile-number?db_name=${_dbName}");
+    final requestBody = jsonEncode({"mobile_number": _mobileController.text});
+    setState(() {
+      mobLoading = true;
+    });
+    try {
+      final response = await http.post(url,
+          headers: {
+            "Authorization": "Bearer ${_token}",
+            "Content-Type": "application/json"
+          },
+          body: requestBody);
+
+      if (response.statusCode == 200) {
+        final dataResponse = jsonDecode(response.body);
+        print("dataResponse2 ${dataResponse}");
+        if (dataResponse["success"] == true) {
+          setState(() {
+            isMobVerify = true;
+            setMobileNumber(_mobileController.text);
+          });
+          toastification.show(
+              context: context,
+              type: ToastificationType.success,
+              style: ToastificationStyle.minimal,
+              title: const Text(
+                'Verification Successfull',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, color: Colors.green),
+              ),
+              autoCloseDuration: const Duration(seconds: 4),
+              primaryColor: Colors.green,
+              backgroundColor: Colors.white,
+              description: const Text(
+                "Mobile number has been verified.",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13),
+              ));
+        } else {
+          setState(() {
+            isMobVerify = false;
+            _mobileController.text = "";
+            mobileNumber = "";
+            mobLoading = false;
+            setMobileNumber("null");
+          });
+          toastification.show(
+              context: context,
+              type: ToastificationType.error,
+              style: ToastificationStyle.minimal,
+              title: const Text(
+                'Verification Failed',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, color: Colors.red),
+              ),
+              autoCloseDuration: const Duration(seconds: 4),
+              primaryColor: Colors.red,
+              backgroundColor: Colors.white,
+              description: const Text(
+                "Mobile number already exist.Enter new number",
+                style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13),
+              ));
+        }
+      } else {
+        setState(() {
+          isMobVerify = false;
+          _mobileController.text = "";
+          mobileNumber = "";
+          setMobileNumber("");
+          mobLoading = false;
+        });
+        toastification.show(
+            context: context,
+            type: ToastificationType.error,
+            style: ToastificationStyle.minimal,
+            title: const Text(
+              'Verification Failed',
+              style: TextStyle(fontWeight: FontWeight.w700, color: Colors.red),
+            ),
+            autoCloseDuration: const Duration(seconds: 4),
+            primaryColor: Colors.red,
+            backgroundColor: Colors.white,
+            description: const Text(
+              "Mobile number already exist.Enter new number",
+              style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13),
+            ));
+      }
+    } catch (error) {
+      setState(() {
+        mobLoading = false;
+      });
+      print("Error ${error}");
+    } finally {
+      setState(() {
+        mobLoading = false;
+      });
+    }
+  }
+
+  void fetchUserDetails() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final arguments = ModalRoute.of(context)?.settings.arguments as Map;
+    final String? token = prefs.getString('MY_TOKEN');
+    if (arguments["USERID"] != null) {
+      final url = Uri.parse(
+          '${Environment.apiUrl}api/contact-edit-details/${arguments["USERID"]}');
+      try {
+        final response = await http.get(
+          url,
+          headers: {
+            "Authorization": "Bearer $token",
+            "Content-Type": "application/json"
+          },
+        );
+
+        if (response.statusCode == 201) {
+          final dataResponse = jsonDecode(response.body);
+
+          setState(() {
+            _firstNamecontroller.text = dataResponse["contact"]["firstname"];
+            salutaionValue = dataResponse["contact"]["salutation"] == "Mr"
+                ? 1
+                : dataResponse["contact"]["salutation"] == "Mrs"
+                    ? 2
+                    : dataResponse["contact"]["salutation"] == "Ms"
+                        ? 3
+                        : dataResponse["contact"]["salutation"] == "M/s"
+                            ? 4
+                            : 5;
+            _lastNamecontroller.text = dataResponse["contact"]["lastname"];
+            customerType = dataResponse["contact"]["customer_type_id"];
+            contactType = dataResponse["contact"]["contact_type_id"];
+            _uniqueController.text = dataResponse["contact"]["uin"];
+            _mobileController.text = dataResponse["contact"]["mobile"];
+            _otherNumber.text = dataResponse["contact"]["mobile_other"] ?? "";
+            _addressController.text = dataResponse["contact"]["address"] ?? "";
+            searchData = dataResponse["contact"]["city"];
+            searchLocalityData = dataResponse["contact"]["locality"];
+            _pinController.text =
+                (dataResponse["contact"]["pincode"] ?? "").toString();
+            _mobileStatus = dataResponse["contact"]["mobile_status"];
+            _emailController.text = dataResponse["contact"]["email"];
+            _EmailStatus = dataResponse["contact"]["email_status"];
+          });
+          setSaluationValue(dataResponse["contact"]["salutation"]);
+          setFirstName(dataResponse["contact"]["firstname"]);
+          setLastName(dataResponse["contact"]["lastname"]);
+          setCustomerTypeValue(dataResponse["contact"]["customer_type_id"]);
+          setContactTypeValue(dataResponse["contact"]["contact_type_id"]);
+          setUniqueNo(dataResponse["contact"]["uin"]);
+          setMobileCode(
+              dataResponse["contact"]["mobile_prefix"], "India (IN) [+91]");
+          setMobileNumber(dataResponse["contact"]["mobile"]);
+          setMobileStatus(dataResponse["contact"]["mobile_status"]);
+          setVerifyEmail(dataResponse["contact"]["email"]);
+          setEmailStatus(dataResponse["contact"]["email_status"]);
+          setOtherNumber(dataResponse["contact"]["mobile_other"]);
+          setCity(dataResponse["contact"]["city"]);
+          setLocality(dataResponse["contact"]["locality"]);
+          setPinCode(dataResponse["contact"]["pincode"]);
+          setAddress(dataResponse["contact"]["address"]);
+        }
+      } catch (error) {
+        print("Error: $error");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // arguments = ModalRoute.of(context)!.settings.arguments as Map;
+    // print("Received arguments: $arguments");
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -698,10 +1028,11 @@ class _MyWidgetState extends State<PersonalInfo> {
                   });
                   SharedPreferences prefs =
                       await SharedPreferences.getInstance();
+                  final String? _dbName = prefs.getString('dbName');
                   await prefs.remove('contactType');
                   _contactTypes = [];
                   setCustomerTypeValue(value);
-                  fetchContactTypes(value);
+                  fetchContactTypes(value, _dbName);
                 },
                 items:
                     _customerTypes.map<DropdownMenuItem<int>>((dynamic state) {
@@ -782,10 +1113,10 @@ class _MyWidgetState extends State<PersonalInfo> {
                 SizedBox(
                   width: 5,
                 ),
-                Text(
-                  "*",
-                  style: TextStyle(color: Colors.red),
-                ),
+                // Text(
+                //   "*",
+                //   style: TextStyle(color: Colors.red),
+                // ),
               ],
             ),
             const SizedBox(
@@ -901,20 +1232,26 @@ class _MyWidgetState extends State<PersonalInfo> {
               height: 40,
               child: TextField(
                 controller: _mobileController,
-                decoration: const InputDecoration(
-                  focusedBorder: OutlineInputBorder(
+                decoration: InputDecoration(
+                  focusedBorder: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                     borderSide: BorderSide(color: Colors.black, width: .5),
                   ),
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(10))),
                   hintText: 'Mobile number',
-                  hintStyle: TextStyle(
+                  suffixIcon: const Icon(
+                    Icons.verified_user,
+                    size: 20,
+                  ),
+                  suffixIconColor:
+                      isMobVerify == true ? Colors.green : Colors.grey,
+                  hintStyle: const TextStyle(
                       fontSize: 14,
                       color: Color.fromARGB(255, 128, 124, 124),
                       fontWeight: FontWeight.w400),
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 ),
                 keyboardType: TextInputType.number,
                 style: const TextStyle(
@@ -1011,10 +1348,10 @@ class _MyWidgetState extends State<PersonalInfo> {
                   SizedBox(
                     width: 5,
                   ),
-                  Text(
-                    "*",
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  // Text(
+                  //   "*",
+                  //   style: TextStyle(color: Colors.red),
+                  // ),
                 ],
               ),
             ),
@@ -1217,38 +1554,39 @@ class _MyWidgetState extends State<PersonalInfo> {
                 style: const TextStyle(fontSize: 14),
                 controller: _searchController,
                 decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: Color(0xff6546d2), width: 1)),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                      borderSide: BorderSide(color: Colors.black, width: .5),
-                    ),
-                    hintText: 'Search...',
-                    hintStyle: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.normal),
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                    suffixIcon: GestureDetector(
-                      onTap: () {
-                        fetchCities(_searchController.text.toLowerCase());
-                      },
-                      child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xff6546d2),
-                            borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomRight: Radius.circular(10)),
-                          ),
-                          child: const Text(
-                            "Search",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          )),
-                    )),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Color(0xff6546d2), width: 1)),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                    borderSide: BorderSide(color: Colors.black, width: .5),
+                  ),
+                  hintText: 'Search (Enter at least 3 character)',
+                  hintStyle: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.normal),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
+                  suffixIcon: cityLoading
+                      ? LoadingAnimationWidget.fourRotatingDots(
+                          color: Colors.grey,
+                          size: 20,
+                        )
+                      : _searchController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  setCity("null");
+                                });
+                              },
+                              icon: const Icon(
+                                Icons.clear,
+                                size: 20,
+                              ),
+                            )
+                          : const SizedBox(),
+                ),
               ),
             ),
             const SizedBox(
@@ -1272,30 +1610,30 @@ class _MyWidgetState extends State<PersonalInfo> {
                       borderRadius: BorderRadius.all(Radius.circular(10)),
                       borderSide: BorderSide(color: Colors.black, width: .5),
                     ),
-                    hintText: 'Search...',
+                    hintText: 'Search (Enter at least 3 character)',
                     hintStyle: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.normal),
                     contentPadding:
                         const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
-                    suffixIcon: GestureDetector(
-                      onTap: () {
-                        fetchLocalities(_localityController.text.toLowerCase());
-                      },
-                      child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xff6546d2),
-                            borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(10),
-                                bottomRight: Radius.circular(10)),
-                          ),
-                          child: const Text(
-                            "Search",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold),
-                          )),
-                    )),
+                    suffixIcon: localityLoading == true
+                        ? LoadingAnimationWidget.fourRotatingDots(
+                            color: Colors.grey,
+                            size: 20,
+                          )
+                        : _localityController.text.isNotEmpty
+                            ? IconButton(
+                                onPressed: () {
+                                  _localityController.clear();
+                                  setState(() {
+                                    setLocality("null");
+                                  });
+                                },
+                                icon: const Icon(
+                                  Icons.clear,
+                                  size: 20,
+                                ),
+                              )
+                            : const SizedBox()),
               ),
             ),
             const SizedBox(
@@ -1324,7 +1662,7 @@ class _MyWidgetState extends State<PersonalInfo> {
                   contentPadding:
                       EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 ),
-                keyboardType: TextInputType.text,
+                // keyboardType: TextInputType.number,
                 style: const TextStyle(
                   fontSize: 13,
                 ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hibroker/components/DashboardDrawer.dart';
 import 'package:hibroker/components/Environment/Environment.dart';
 import 'package:http/http.dart' as http;
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum SampleItem {
@@ -25,8 +26,8 @@ class _MyWidgetState extends State<DashboardHome> {
   bool isShowAll = true;
   Map<String, dynamic> _dasboardData = {};
   List<Map<String, dynamic>> dashBoardCardArray = [];
-
   List<Map<String, dynamic>> dashBoardCardArray2 = [];
+  bool loading = false;
 
   @override
   void initState() {
@@ -38,17 +39,23 @@ class _MyWidgetState extends State<DashboardHome> {
     final prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('MY_TOKEN');
     final int? USERID = prefs.getInt("USERID");
+    final String? _dbName = prefs.getString('dbName');
     print("Loaded token: $token");
-     print("USERID: $USERID");
+    print("_dbName ${_dbName}");
+    print("USERID: $USERID");
     if (token != null) {
       setState(() {
-        fetchDashBoardData(token);
+        fetchDashBoardData(token, _dbName);
       });
     }
   }
 
-  Future<void> fetchDashBoardData(token) async {
-    final Url = Uri.parse('${Environment.apiUrl}api/dashboard-counts');
+  Future<void> fetchDashBoardData(token, _dbName) async {
+    final Url = Uri.parse(
+        '${Environment.apiUrl}api/dashboard-counts?db_name=${_dbName}');
+    setState(() {
+      loading = true;
+    });
 
     try {
       final headers = {
@@ -66,10 +73,20 @@ class _MyWidgetState extends State<DashboardHome> {
         });
         print("Dashboard data: $_dasboardData");
       } else {
+        setState(() {
+          loading = false;
+        });
         print("Failed to fetch data: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching dashboard data: $e");
+      setState(() {
+        loading = false;
+      });
+    } finally {
+      setState(() {
+        loading = false;
+      });
     }
   }
 
@@ -476,242 +493,276 @@ class _MyWidgetState extends State<DashboardHome> {
                   height: 5,
                 ),
                 isShowAll == true
-                    ? Column(
-                        children: dashBoardCardArray.map((card) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border:
-                                  Border.all(width: 0.1, color: Colors.black),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 5.0,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(5),
+                    ? loading == true
+                        ? Center(
+                            child: LoadingAnimationWidget.fourRotatingDots(
+                              color: const Color(0xff6546D2),
+                              size: 40,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 18, 0, 18),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        card['value'].toString(),
-                                        style: const TextStyle(fontSize: 27),
-                                      ),
-                                      Text(
-                                        card['name'],
-                                        style: const TextStyle(fontSize: 15),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
+                          )
+                        : Column(
+                            children: dashBoardCardArray.map((card) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 20),
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      width: 0.1, color: Colors.black),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 5.0,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(15, 18, 0, 18),
+                                  child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      card["hasDot"] == true
-                                          ? Container(
-                                              transform:
-                                                  Matrix4.translationValues(
-                                                      50.0, 0.0, 0.0),
-                                              child: Image(
-                                                image: AssetImage(card['icon']),
-                                                width: 41,
-                                                height: 41,
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            card['value'].toString(),
+                                            style:
+                                                const TextStyle(fontSize: 27),
+                                          ),
+                                          Text(
+                                            card['name'],
+                                            style:
+                                                const TextStyle(fontSize: 15),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          card["hasDot"] == true
+                                              ? Container(
+                                                  transform:
+                                                      Matrix4.translationValues(
+                                                          50.0, 0.0, 0.0),
+                                                  child: Image(
+                                                    image: AssetImage(
+                                                        card['icon']),
+                                                    width: 41,
+                                                    height: 41,
+                                                  ),
+                                                )
+                                              : Container(
+                                                  transform:
+                                                      Matrix4.translationValues(
+                                                          -22.0, 0.0, 0.0),
+                                                  child: Image(
+                                                    image: AssetImage(
+                                                        card['icon']),
+                                                    width: 41,
+                                                    height: 41,
+                                                  ),
+                                                ),
+                                          if (card["hasDot"] == true)
+                                            Transform.translate(
+                                              offset: const Offset(0.0, -20.0),
+                                              child:
+                                                  PopupMenuButton<SampleItem>(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        50, 0, 0, 0),
+                                                color: Colors.white,
+                                                initialValue: selectedItem,
+                                                onSelected: (SampleItem item) {
+                                                  setState(() {
+                                                    selectedItem = item;
+                                                  });
+                                                },
+                                                itemBuilder:
+                                                    (BuildContext context) =>
+                                                        <PopupMenuEntry<
+                                                            SampleItem>>[
+                                                  const PopupMenuItem<
+                                                      SampleItem>(
+                                                    value: SampleItem.itemOne,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.visibility,
+                                                          color: Colors.black54,
+                                                          size: 20,
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        Text('View'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem<
+                                                      SampleItem>(
+                                                    value: SampleItem.itemTwo,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.download_sharp,
+                                                          color: Colors.black54,
+                                                          size: 20,
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        Text('Export'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             )
-                                          : Container(
-                                              transform:
-                                                  Matrix4.translationValues(
-                                                      -22.0, 0.0, 0.0),
-                                              child: Image(
-                                                image: AssetImage(card['icon']),
-                                                width: 41,
-                                                height: 41,
-                                              ),
-                                            ),
-                                      if (card["hasDot"] == true)
-                                        Transform.translate(
-                                          offset: const Offset(0.0, -20.0),
-                                          child: PopupMenuButton<SampleItem>(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                50, 0, 0, 0),
-                                            color: Colors.white,
-                                            initialValue: selectedItem,
-                                            onSelected: (SampleItem item) {
-                                              setState(() {
-                                                selectedItem = item;
-                                              });
-                                            },
-                                            itemBuilder: (BuildContext
-                                                    context) =>
-                                                <PopupMenuEntry<SampleItem>>[
-                                              const PopupMenuItem<SampleItem>(
-                                                value: SampleItem.itemOne,
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.visibility,
-                                                      color: Colors.black54,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 10),
-                                                    Text('View'),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem<SampleItem>(
-                                                value: SampleItem.itemTwo,
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.download_sharp,
-                                                      color: Colors.black54,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 10),
-                                                    Text('Export'),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      )
-                    : Column(
-                        children: dashBoardCardArray2.map((card) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border:
-                                  Border.all(width: 0.1, color: Colors.black),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 5.0,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(15, 18, 0, 18),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        card['value'].toString(),
-                                        style: const TextStyle(fontSize: 27),
-                                      ),
-                                      Text(
-                                        card['name'],
-                                        style: const TextStyle(fontSize: 15),
-                                      ),
+                                        ],
+                                      )
                                     ],
                                   ),
-                                  Row(
+                                ),
+                              );
+                            }).toList(),
+                          )
+                    : loading == true
+                        ? Center(
+                            child: LoadingAnimationWidget.fourRotatingDots(
+                              color: const Color(0xff6546D2),
+                              size: 40,
+                            ),
+                          )
+                        : Column(
+                            children: dashBoardCardArray2.map((card) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 20),
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      width: 0.1, color: Colors.black),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 5.0,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(15, 18, 0, 18),
+                                  child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      card["hasDot"] == true
-                                          ? Container(
-                                              transform:
-                                                  Matrix4.translationValues(
-                                                      50.0, 0.0, 0.0),
-                                              child: Image(
-                                                image: AssetImage(card['icon']),
-                                                width: 41,
-                                                height: 41,
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            card['value'].toString(),
+                                            style:
+                                                const TextStyle(fontSize: 27),
+                                          ),
+                                          Text(
+                                            card['name'],
+                                            style:
+                                                const TextStyle(fontSize: 15),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          card["hasDot"] == true
+                                              ? Container(
+                                                  transform:
+                                                      Matrix4.translationValues(
+                                                          50.0, 0.0, 0.0),
+                                                  child: Image(
+                                                    image: AssetImage(
+                                                        card['icon']),
+                                                    width: 41,
+                                                    height: 41,
+                                                  ),
+                                                )
+                                              : Container(
+                                                  transform:
+                                                      Matrix4.translationValues(
+                                                          -22.0, 0.0, 0.0),
+                                                  child: Image(
+                                                    image: AssetImage(
+                                                        card['icon']),
+                                                    width: 41,
+                                                    height: 41,
+                                                  ),
+                                                ),
+                                          if (card["hasDot"] == true)
+                                            Transform.translate(
+                                              offset: const Offset(0.0, -20.0),
+                                              child:
+                                                  PopupMenuButton<SampleItem>(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        50, 0, 0, 0),
+                                                color: Colors.white,
+                                                initialValue: selectedItem,
+                                                onSelected: (SampleItem item) {
+                                                  setState(() {
+                                                    selectedItem = item;
+                                                  });
+                                                },
+                                                itemBuilder:
+                                                    (BuildContext context) =>
+                                                        <PopupMenuEntry<
+                                                            SampleItem>>[
+                                                  const PopupMenuItem<
+                                                      SampleItem>(
+                                                    value: SampleItem.itemOne,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.visibility,
+                                                          color: Colors.black54,
+                                                          size: 20,
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        Text('View'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const PopupMenuItem<
+                                                      SampleItem>(
+                                                    value: SampleItem.itemTwo,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.download_sharp,
+                                                          color: Colors.black54,
+                                                          size: 20,
+                                                        ),
+                                                        SizedBox(width: 10),
+                                                        Text('Export'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             )
-                                          : Container(
-                                              transform:
-                                                  Matrix4.translationValues(
-                                                      -22.0, 0.0, 0.0),
-                                              child: Image(
-                                                image: AssetImage(card['icon']),
-                                                width: 41,
-                                                height: 41,
-                                              ),
-                                            ),
-                                      if (card["hasDot"] == true)
-                                        Transform.translate(
-                                          offset: const Offset(0.0, -20.0),
-                                          child: PopupMenuButton<SampleItem>(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                50, 0, 0, 0),
-                                            color: Colors.white,
-                                            initialValue: selectedItem,
-                                            onSelected: (SampleItem item) {
-                                              setState(() {
-                                                selectedItem = item;
-                                              });
-                                            },
-                                            itemBuilder: (BuildContext
-                                                    context) =>
-                                                <PopupMenuEntry<SampleItem>>[
-                                              const PopupMenuItem<SampleItem>(
-                                                value: SampleItem.itemOne,
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.visibility,
-                                                      color: Colors.black54,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 10),
-                                                    Text('View'),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem<SampleItem>(
-                                                value: SampleItem.itemTwo,
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.download_sharp,
-                                                      color: Colors.black54,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 10),
-                                                    Text('Export'),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
+                                        ],
+                                      )
                                     ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                 const SizedBox(
                   height: 0,
                 ),

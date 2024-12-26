@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hibroker/components/DashboardDrawer.dart';
 import 'package:hibroker/components/Environment/Environment.dart';
+import 'package:hibroker/pages/Contact/AllContacts/ContactDetailsHeader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -49,11 +50,12 @@ class _MyWidgetState extends State<ContactDetails> {
   void fetchUserId() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? token = prefs.getString('MY_TOKEN');
+    final String? _dbName = prefs.getString('dbName');
     USERID = prefs.getInt("userId");
     print("USERID ${USERID}");
     if (USERID != null) {
-      final url =
-          Uri.parse('${Environment.apiUrl}api/get-contact-details-by-id');
+      final url = Uri.parse(
+          '${Environment.apiUrl}api/get-contact-details-by-id?db_name=${_dbName}');
       try {
         final response = await http.post(url,
             headers: {
@@ -131,163 +133,7 @@ class _MyWidgetState extends State<ContactDetails> {
           padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Center(
-                        child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isSelected = "home";
-                          Navigator.pushNamed(context, "/allContact");
-                        });
-                      },
-                      child: Icon(
-                        size: 24,
-                        Icons.arrow_back,
-                        color: isSelected == "home"
-                            ? const Color(0xff6546D2)
-                            : Colors.black,
-                      ),
-                    )),
-                  ),
-                  Expanded(
-                    child: Center(
-                        child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isSelected = "contact";
-                        });
-                      },
-                      child: Icon(
-                        size: 25,
-                        Icons.history,
-                        color: isSelected == "contact"
-                            ? Colors.black
-                            : Colors.black,
-                      ),
-                    )),
-                  ),
-                  Expanded(
-                    child: Center(
-                        child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isSelected = "contact";
-                        });
-                      },
-                      child: Icon(
-                        size: 26,
-                        Icons.edit_note,
-                        color: isSelected == "contact"
-                            ? const Color(0xff6546D2)
-                            : Colors.black,
-                      ),
-                    )),
-                  ),
-                  Expanded(
-                    child: Center(
-                        child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isSelected = "menu";
-                              });
-                              showMenu(
-                                color: Colors.white,
-                                context: context,
-                                position: const RelativeRect.fromLTRB(
-                                    220, 150, 15, 0),
-                                items: menuItems.map((item) {
-                                  return PopupMenuItem(
-                                    height: 35,
-                                    value: item['value'],
-                                    child: Text(
-                                      item['name']!,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w400),
-                                    ),
-                                  );
-                                }).toList(),
-                              ).then((value) {
-                                if (value != null) {
-                                  if (value == "Export") {
-                                    Navigator.pushNamed(
-                                        context, "/exportContact");
-                                  } else if (value == "Import") {
-                                    Navigator.pushNamed(
-                                        context, "/importContact");
-                                  } else if (value == "Advanced Search") {
-                                    Navigator.pushNamed(
-                                        context, "/advanceSearch");
-                                  } else if (value == "Create Group") {
-                                    Navigator.pushNamed(
-                                        context, "/createGroup");
-                                  }
-                                }
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  size: 19,
-                                  Icons.format_list_bulleted_outlined,
-                                  color: isSelected == "menu"
-                                      ? const Color(0xff6546D2)
-                                      : Colors.black,
-                                ),
-                                const Icon(Icons.arrow_drop_down),
-                              ],
-                            ))),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isSelected = "folder";
-                            });
-                            showMenu(
-                                    color: Colors.white,
-                                    context: context,
-                                    position: const RelativeRect.fromLTRB(
-                                        220, 150, 15, 0),
-                                    items: menuItems2.map((item) {
-                                      return PopupMenuItem(
-                                        height: 35,
-                                        value: item['value'],
-                                        child: Text(
-                                          item['name']!,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w400),
-                                        ),
-                                      );
-                                    }).toList())
-                                .then((value) {
-                              if (value != null) {
-                                print("Selected: $value");
-                              }
-                            });
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                size: 20,
-                                Icons.share_sharp,
-                                color: isSelected == "folder"
-                                    ? const Color(0xff6546D2)
-                                    : Colors.black,
-                              ),
-                              const Icon(Icons.arrow_drop_down),
-                            ],
-                          )),
-                    ),
-                  ),
-                ],
-              ),
+              const Contactdetailsheader(),
               const Divider(
                 thickness: 1,
                 color: Colors.grey,
@@ -343,31 +189,51 @@ class _MyWidgetState extends State<ContactDetails> {
                             ],
                           ),
                           Padding(
-                              padding: EdgeInsets.fromLTRB(30, 10, 30, 0),
+                              padding: const EdgeInsets.fromLTRB(30, 10, 30, 0),
                               child: Row(
                                 children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                        color: Color(0xff06C270),
-                                        borderRadius: BorderRadius.circular(3)),
-                                    padding: EdgeInsets.fromLTRB(15, 5, 15, 5),
-                                    child: const Icon(
-                                      Icons.share_sharp,
-                                      color: Colors.white,
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                          context, "/createLead");
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                          color: const Color(0xff06C270),
+                                          borderRadius:
+                                              BorderRadius.circular(3)),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          15, 5, 15, 5),
+                                      child: const Icon(
+                                        Icons.share_sharp,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(
                                     width: 10,
                                   ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                        color: const Color(0xff4B2DB9),
-                                        borderRadius: BorderRadius.circular(3)),
-                                    padding:
-                                        const EdgeInsets.fromLTRB(15, 5, 15, 5),
-                                    child: const Icon(
-                                      Icons.create_sharp,
-                                      color: Colors.white,
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        "/createContact",
+                                        arguments: {
+                                          "USERID": USERID,
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                          color: const Color(0xff4B2DB9),
+                                          borderRadius:
+                                              BorderRadius.circular(3)),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          15, 5, 15, 5),
+                                      child: const Icon(
+                                        Icons.create_sharp,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   )
                                 ],
@@ -506,7 +372,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                         width: 20,
                                       ),
                                       Text(
-                                        "+${contact_details['mobile_prefix']?? ''}-${contact_details['mobile']?? ''}",
+                                        "+${contact_details['mobile_prefix'] ?? ''}-${contact_details['mobile'] ?? ''}",
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
@@ -687,12 +553,14 @@ class _MyWidgetState extends State<ContactDetails> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(
-                                              "${contact_details["remark"] ?? ""}",
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                                color: Color(0xff565871),
+                                            Expanded(
+                                              child: Text(
+                                                "${contact_details["remark"] ?? ""}",
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                  color: Color(0xff565871),
+                                                ),
                                               ),
                                             ),
                                             const Text(
@@ -850,14 +718,16 @@ class _MyWidgetState extends State<ContactDetails> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Text(
-                                                      "${contact_details["company"] ?? ""}",
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 14,
-                                                        color:
-                                                            Color(0xff565871),
+                                                    Expanded(
+                                                      child: Text(
+                                                        "${contact_details["company"] ?? ""}",
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 14,
+                                                          color:
+                                                              Color(0xff565871),
+                                                        ),
                                                       ),
                                                     ),
                                                     const Text(
@@ -895,14 +765,16 @@ class _MyWidgetState extends State<ContactDetails> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Text(
-                                                      "${contact_details["website"] ?? ""}",
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 14,
-                                                        color:
-                                                            Color(0xff565871),
+                                                    Expanded(
+                                                      child: Text(
+                                                        "${contact_details["website"] ?? ""}",
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 14,
+                                                          color:
+                                                              Color(0xff565871),
+                                                        ),
                                                       ),
                                                     ),
                                                     const Text(
@@ -1480,7 +1352,8 @@ class _MyWidgetState extends State<ContactDetails> {
                                                       MainAxisAlignment
                                                           .spaceBetween,
                                                   children: [
-                                                    Text(
+                                                    Expanded(
+                                                        child: Text(
                                                       "${contact_details["address"] ?? ""}",
                                                       style: const TextStyle(
                                                         fontWeight:
@@ -1489,7 +1362,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                         color:
                                                             Color(0xff565871),
                                                       ),
-                                                    ),
+                                                    )),
                                                     const Text(
                                                       "(Address)",
                                                       textAlign: TextAlign.end,
@@ -1796,7 +1669,7 @@ class _MyWidgetState extends State<ContactDetails> {
                                                           .spaceBetween,
                                                   children: [
                                                     Text(
-                                                      "${contact_details["updated_by"] ?? ""}",
+                                                      "${contact_details["updated_user"] != null ? contact_details["updated_user"]["name"] : ""}",
                                                       style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,

@@ -401,7 +401,7 @@ class _MyWidgetState extends State<OtherInfo> {
                   contentPadding:
                       EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 ),
-                keyboardType: TextInputType.text,
+                keyboardType: TextInputType.number,
                 style: const TextStyle(
                   fontSize: 13,
                 ),

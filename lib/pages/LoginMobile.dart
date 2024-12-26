@@ -15,7 +15,7 @@ class LoginMobile extends StatefulWidget {
 
 TextEditingController _controller =
     TextEditingController(text: "India (IN) [+91]");
-TextEditingController _controllerPhone = TextEditingController(text: "6360328864");
+TextEditingController _controllerPhone = TextEditingController(text: "");
 
 class _MyWidgetState extends State<LoginMobile> {
   String? _dbName;
@@ -94,6 +94,7 @@ class _MyWidgetState extends State<LoginMobile> {
         Navigator.pushNamed(context, "/otpPassword", arguments: {
           'phoneNumber': dataResponse["mobile_number"],
           'token': dataResponse["token"],
+          'db_name': _dbName
         });
       } else {
         toastification.show(
